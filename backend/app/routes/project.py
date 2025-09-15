@@ -75,8 +75,20 @@ async def add_member(project_id: str, member: Member, current_user: str = Depend
         )
 
         updated = await db.projects.find_one({"_id": ObjectId(project_id)})
-        updated["_id"] = str(updated["_id"])
-        return updated
+        if not updated:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        return {
+            "id": str(updated["_id"]),
+            "name": updated["name"],
+            "key": updated["key"],
+            "description": updated.get("description"),
+            "type": updated["type"],
+            "owner": updated["owner"],
+            "members": updated.get("members", []),
+            "created_at": updated["created_at"],
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to add member: {str(e)}")
 
@@ -100,8 +112,20 @@ async def update_member_role(project_id: str, email: str, role: str, current_use
             raise HTTPException(status_code=404, detail="Member not found")
 
         updated = await db.projects.find_one({"_id": ObjectId(project_id)})
-        updated["_id"] = str(updated["_id"])
-        return updated
+        if not updated:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        return {
+            "id": str(updated["_id"]),
+            "name": updated["name"],
+            "key": updated["key"],
+            "description": updated.get("description"),
+            "type": updated["type"],
+            "owner": updated["owner"],
+            "members": updated.get("members", []),
+            "created_at": updated["created_at"],
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update member role: {str(e)}")
 
@@ -123,8 +147,19 @@ async def remove_member(project_id: str, email: str, current_user: str = Depends
         )
 
         updated = await db.projects.find_one({"_id": ObjectId(project_id)})
-        updated["_id"] = str(updated["_id"])
-        return updated
+        if not updated:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        return {
+            "id": str(updated["_id"]),
+            "name": updated["name"],
+            "key": updated["key"],
+            "description": updated.get("description"),
+            "type": updated["type"],
+            "owner": updated["owner"],
+            "members": updated.get("members", []),
+            "created_at": updated["created_at"],
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to remove member: {str(e)}")
 
@@ -149,3 +184,67 @@ async def get_project(project_id: str, current_user: str = Depends(get_current_u
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch project: {str(e)}")
+    
+
+# Update project
+@router.put("/{project_id}", response_model=ProjectOut)
+async def update_project(project_id: str, data: ProjectCreate, current_user: str = Depends(get_current_user)):
+    try:
+        project = await db.projects.find_one({"_id": ObjectId(project_id)})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Only Admins can update project
+        admin = next((m for m in project["members"] if m["email"] == current_user and m["role"] == "Admin"), None)
+        if not admin:
+            raise HTTPException(status_code=403, detail="Only Admins can update project")
+
+        # Prevent duplicate key (if changing)
+        if project["key"] != data.key.upper():
+            existing = await db.projects.find_one({"key": data.key.upper()})
+            if existing:
+                raise HTTPException(status_code=400, detail="Project key already exists")
+
+        update_data = {
+            "name": data.name,
+            "key": data.key.upper(),
+            "description": data.description,
+            "type": data.type,
+        }
+
+        await db.projects.update_one({"_id": ObjectId(project_id)}, {"$set": update_data})
+
+        updated = await db.projects.find_one({"_id": ObjectId(project_id)})
+        updated["_id"] = str(updated["_id"])
+        return {
+            "id": updated["_id"],
+            "name": updated["name"],
+            "key": updated["key"],
+            "description": updated.get("description"),
+            "type": updated["type"],
+            "owner": updated["owner"],
+            "members": updated.get("members", []),
+            "created_at": updated["created_at"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update project: {str(e)}")
+
+
+# Delete project
+@router.delete("/{project_id}")
+async def delete_project(project_id: str, current_user: str = Depends(get_current_user)):
+    try:
+        project = await db.projects.find_one({"_id": ObjectId(project_id)})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Only Admins can delete project
+        admin = next((m for m in project["members"] if m["email"] == current_user and m["role"] == "Admin"), None)
+        if not admin:
+            raise HTTPException(status_code=403, detail="Only Admins can delete project")
+
+        await db.projects.delete_one({"_id": ObjectId(project_id)})
+        return {"message": "Project deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
+
