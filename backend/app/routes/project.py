@@ -170,10 +170,13 @@ async def get_project(project_id: str, current_user: str = Depends(get_current_u
         project = await db.projects.find_one({"_id": ObjectId(project_id), "members.email": current_user})
         if not project:
             raise HTTPException(status_code=404, detail="Project not found or access denied")
+        member = next((m for m in project["members"] if m["email"] == current_user), None)
+        role = member["role"] if member else "Viewer"
 
         project["_id"] = str(project["_id"])
+        
         return {
-            "id": project["_id"],
+            "id": str(project["_id"]),
             "name": project["name"],
             "key": project["key"],
             "description": project.get("description"),
@@ -181,6 +184,7 @@ async def get_project(project_id: str, current_user: str = Depends(get_current_u
             "owner": project["owner"],
             "members": project.get("members", []),
             "created_at": project["created_at"],
+            "current_user_role": role   # 🔹 new
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch project: {str(e)}")

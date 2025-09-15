@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Navbar from "../components/Navbar";
@@ -148,6 +148,7 @@ const ProjectDetails = () => {
                 <h4 className="mb-0">
                   {project.name} ({project.key})
                 </h4>
+
                 <div>
                   <button
                     className="btn btn-outline-warning btn-sm me-2"
@@ -232,6 +233,12 @@ const ProjectDetails = () => {
                   </button>
                 </form>
               )}
+              <Link
+                to={`/projects/${project.id}/issues`}
+                className="btn btn-outline-primary mt-3"
+              >
+                View Issues
+              </Link>
             </div>
           </div>
 

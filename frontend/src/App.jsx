@@ -15,6 +15,8 @@ import Projects from "./pages/Projects";
 import CreateProject from "./pages/CreateProject";
 import ProjectDetails from "./pages/ProjectDetails";
 
+import IssuesBoard from "./pages/IssuesBoard";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -57,6 +59,15 @@ const App = () => {
           element={
             <PrivateRoute>
               <Dashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/projects/:projectId/issues"
+          element={
+            <PrivateRoute>
+              <IssuesBoard />
             </PrivateRoute>
           }
         />
