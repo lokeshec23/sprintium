@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from ..models.user import UserCreate, UserOut
 from ..database import db
-from ..utils import hash_password, verify_password, create_access_token
+from ..utils import hash_password, verify_password, create_access_token, get_current_user
 from pydantic import BaseModel
 from datetime import timedelta
 
@@ -37,3 +37,15 @@ async def login(request: LoginRequest):
         return {"access_token": token, "token_type": "bearer"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+
+@router.post("/logout")
+async def logout(current_user: str = Depends(get_current_user)):
+    """
+    For now, logout just confirms success. 
+    In future, we can add token blacklisting here.
+    """
+    try:
+        return {"message": "Logout successful"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Logout failed: {str(e)}")
