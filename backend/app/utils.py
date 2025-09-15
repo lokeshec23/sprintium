@@ -11,6 +11,9 @@ SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+RESET_SECRET_KEY = os.getenv("RESET_SECRET_KEY", "superresetkey")
+RESET_EXPIRE_MINUTES = 15
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 def hash_password(password: str) -> str:
@@ -41,3 +44,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return email
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+def create_reset_token(email: str):
+    expire = datetime.utcnow() + timedelta(minutes=RESET_EXPIRE_MINUTES)
+    to_encode = {"sub": email, "exp": expire}
+    return jwt.encode(to_encode, RESET_SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_reset_token(token: str):
+    try:
+        payload = jwt.decode(token, RESET_SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub")
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
